@@ -11,6 +11,32 @@
         .then(stream => {
           const video = document.getElementById('localVideo');
           video.srcObject = stream;
+          
+          // Create a new RTCPeerConnection and add the stream
+          const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+          const peerConnection = new RTCPeerConnection(configuration);
+          const videoTracks = stream.getVideoTracks();
+          peerConnection.addTrack(videoTracks[0], stream);
+
+          // When a remote stream is added, show it in the remote video element
+          const remoteVideo = document.getElementById('remoteVideo');
+          peerConnection.ontrack = event => {
+            remoteVideo.srcObject = event.streams[0];
+          };
+
+          // Create an offer and set the local description, then send the offer to the remote site
+          peerConnection.createOffer()
+            .then(offer => {
+              return peerConnection.setLocalDescription(offer);
+            })
+            .then(() => {
+              // Send the offer to the remote site using WebSocket or any other means of communication
+              const offer = peerConnection.localDescription;
+              console.log('Sending offer:', offer);
+            })
+            .catch(error => {
+              console.error('Error creating offer.', error);
+            });
         })
         .catch(error => {
           console.error('Error accessing media devices.', error);
